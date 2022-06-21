@@ -114,14 +114,13 @@ func (mc *mysqlConn) writePacket(data []byte) error {
 			conn = mc.rawConn
 		}
 		var err error
-		// If this connection has a ReadTimeout which we've been setting on
-		// reads, reset it to its default value before we attempt a non-blocking
-		// read, otherwise the scheduler will just time us out before we can read
-		if mc.cfg.ReadTimeout != 0 {
-			err = conn.SetReadDeadline(time.Time{})
-		}
-		if err == nil && mc.cfg.CheckConnLiveness {
-			err = connCheck(conn)
+		if mc.cfg.CheckConnLiveness {
+			if mc.cfg.ReadTimeout != 0 {
+				err = conn.SetReadDeadline(time.Now().Add(mc.cfg.ReadTimeout))
+			}
+			if err == nil {
+				err = connCheck(conn)
+			}
 		}
 		if err != nil {
 			errLog.Print("closing bad idle connection: ", err)
@@ -649,19 +648,20 @@ func (mc *mysqlConn) handleErrorPacket(data []byte) error {
 		return driver.ErrBadConn
 	}
 
+	me := &MySQLError{Number: errno}
+
 	pos := 3
 
 	// SQL State [optional: # + 5bytes string]
 	if data[3] == 0x23 {
-		//sqlstate := string(data[4 : 4+5])
+		copy(me.SQLState[:], data[4:4+5])
 		pos = 9
 	}
 
 	// Error Message [string]
-	return &MySQLError{
-		Number:  errno,
-		Message: string(data[pos:]),
-	}
+	me.Message = string(data[pos:])
+
+	return me
 }
 
 func readStatus(b []byte) statusFlag {
