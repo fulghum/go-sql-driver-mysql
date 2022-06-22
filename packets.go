@@ -320,9 +320,6 @@ func (mc *mysqlConn) writeHandshakeResponsePacket(authResp []byte, plugin string
 	}
 
 	pktLen := 4 + 4 + 1 + 23 + len(mc.cfg.User) + 1 + len(authRespLEI) + len(authResp) + 21 + 1
-	if clientFlags&clientSecureConn == 0 || clientFlags&clientPluginAuthLenEncClientData == 0 {
-		pktLen++
-	}
 
 	connectAttrsBuf := make([]byte, 0, 100)
 	if mc.flags&clientConnectAttrs != 0 {
@@ -355,7 +352,7 @@ func (mc *mysqlConn) writeHandshakeResponsePacket(authResp []byte, plugin string
 	}
 
 	// To specify a db name
-	if n := len(mc.cfg.DBName); mc.flags&clientConnectWithDB != 0 && n > 0 {
+	if n := len(mc.cfg.DBName); n > 0 {
 		clientFlags |= clientConnectWithDB
 		pktLen += n + 1
 	}
@@ -421,20 +418,9 @@ func (mc *mysqlConn) writeHandshakeResponsePacket(authResp []byte, plugin string
 	data[pos] = 0x00
 	pos++
 
-	// Auth Data [length encoded integer + data] if clientPluginAuthLenEncClientData
-	// clientSecureConn => 1 byte len + data
-	// else null-terminated
-	if clientFlags&clientPluginAuthLenEncClientData != 0 {
-		pos += copy(data[pos:], authRespLEI)
-	} else if clientFlags&clientSecureConn != 0 {
-		data[pos] = uint8(len(authResp))
-		pos++
-	}
+	// Auth Data [length encoded integer]
+	pos += copy(data[pos:], authRespLEI)
 	pos += copy(data[pos:], authResp)
-	if clientFlags&clientSecureConn == 0 && clientFlags&clientPluginAuthLenEncClientData == 0 {
-		data[pos] = 0x00
-		pos++
-	}
 
 	// Databasename [null terminated string]
 	if clientFlags&clientConnectWithDB != 0 {
@@ -443,12 +429,9 @@ func (mc *mysqlConn) writeHandshakeResponsePacket(authResp []byte, plugin string
 		pos++
 	}
 
-	// auth plugin name [null terminated string]
-	if clientFlags&clientPluginAuth != 0 {
-		pos += copy(data[pos:], plugin)
-		data[pos] = 0x00
-		pos++
-	}
+	pos += copy(data[pos:], plugin)
+	data[pos] = 0x00
+	pos++
 
 	// connection attributes [lenenc-int total + lenenc-str key-value pairs]
 	if clientFlags&clientConnectAttrs != 0 {
