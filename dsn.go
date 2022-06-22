@@ -282,18 +282,18 @@ func (cfg *Config) FormatDSN() string {
 			buf.WriteString("?connectAttrs=")
 		}
 
-		var attr_names []string
-		for attr_name := range cfg.ConnectAttrs {
-			attr_names = append(attr_names, attr_name)
+		var attrNames []string
+		for attrName := range cfg.ConnectAttrs {
+			attrNames = append(attrNames, attrName)
 		}
-		sort.Strings(attr_names)
-		for index, attr_name := range attr_names {
+		sort.Strings(attrNames)
+		for index, attrName := range attrNames {
 			if index > 0 {
 				buf.WriteByte(',')
 			}
-			buf.WriteString(attr_name)
+			buf.WriteString(attrName)
 			buf.WriteByte(':')
-			buf.WriteString(url.QueryEscape(cfg.ConnectAttrs[attr_name]))
+			buf.WriteString(url.QueryEscape(cfg.ConnectAttrs[attrName]))
 		}
 	}
 
@@ -566,14 +566,14 @@ func parseDSNParams(cfg *Config, params string) (err error) {
 				cfg.ConnectAttrs = make(map[string]string)
 			}
 
-			var ConnectAttrs string
-			if ConnectAttrs, err = url.QueryUnescape(value); err != nil {
+			var connectAttrs string
+			if connectAttrs, err = url.QueryUnescape(value); err != nil {
 				return
 			}
 
 			// program_name:Name,foo:bar
-			for _, attr_str := range strings.Split(ConnectAttrs, ",") {
-				attr := strings.SplitN(attr_str, ":", 2)
+			for _, attrStr := range strings.Split(connectAttrs, ",") {
+				attr := strings.SplitN(attrStr, ":", 2)
 				if len(attr) != 2 {
 					continue
 				}
