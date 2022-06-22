@@ -2203,8 +2203,8 @@ func TestConnectAttrs(t *testing.T) {
 
 	rows := dbt.mustQuery("SHOW VARIABLES LIKE 'performance_schema'")
 	if rows.Next() {
-		var var_name, value string
-		rows.Scan(&var_name, &value)
+		var name, value string
+		rows.Scan(&name, &value)
 		if value != "ON" {
 			t.Skip("performance_schema is disabled")
 		}
